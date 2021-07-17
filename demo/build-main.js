@@ -1,5 +1,5 @@
 const rollup = require('../dist/rollup')
 
 rollup(__dirname + '/main.js').then((res) => {
-  res.wirte('demo/bundle-out.js')
+  res.wirte('build/main.js')
 })

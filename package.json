@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "demo": "node demo/build-main.js",
+    "rollup": "node demo/build-rollup.js",
     "test": "jest"
   },
   "repository": {
@@ -20,7 +21,7 @@
   "homepage": "https://github.com/woai3c/copy-rollup#readme",
   "dependencies": {
     "acorn": "^8.0.1",
-    "magic-string": "^0.25.7"
+    "magic-string": "0.25.7"
   },
   "devDependencies": {}
 }
