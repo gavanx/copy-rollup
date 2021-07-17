@@ -406,7 +406,7 @@ class Module {
 
   expandAllStatements(isEntryModule) {
     let allStatements = []
-
+		// console.log(this.ast.body)
     return sequence(this.ast.body, (statement) => {
       // skip already-included statements
       if (statement._included) return
@@ -443,17 +443,19 @@ class Module {
   expandStatement(statement) {
     if (statement._included) return emptyArrayPromise
     statement._included = true
-
+// console.log(`expandStatement:`, statement._dependsOn)
     let result = []
 
     // 根据 AST 节点的依赖项找到相应的模块
     // 例如依赖 path 模块，就需要去找到它
     const dependencies = Object.keys(statement._dependsOn)
+		// console.log(`expandStatement:`, dependencies)
 
     return (
       sequence(dependencies, (name) => {
         // define() 将从其他模块中引入的函数加载进来
         return this.define(name).then((definition) => {
+					// console.log(`expandStatement:`, definition)
           result.push.apply(result, definition)
         })
       })
@@ -495,10 +497,8 @@ class Module {
     // The definition for this name is in a different module
     if (has(this.imports, name)) {
       const importDeclaration = this.imports[name]
-
       promise = this.bundle.fetchModule(importDeclaration.source, this.path).then((module) => {
         importDeclaration.module = module
-
         // suggest names. TODO should this apply to non default/* imports?
         if (importDeclaration.name === 'default') {
           // TODO this seems ropey
