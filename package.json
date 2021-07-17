@@ -6,6 +6,8 @@
   "scripts": {
     "demo": "node demo/build-main.js",
     "rollup": "node demo/build-rollup.js",
+    "dev": "node src/dev-main.js",
+    "dev2": "node src/dev-rollup.js",
     "test": "jest"
   },
   "repository": {
