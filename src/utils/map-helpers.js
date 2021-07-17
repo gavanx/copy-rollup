@@ -1,7 +1,7 @@
 function getName(x) {
-	return x.name
+  return x.name
 }
 
 module.exports = {
-	getName,
+  getName,
 }
