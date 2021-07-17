@@ -75,10 +75,7 @@ class Bundle {
         } else if (importee[0] == '.') {
           // 相对路径
           // 获取 importer 的目录，从而找到 importee 的绝对路径
-          route = path.resolve(
-            path.dirname(importer),
-            importee.replace(/\.js$/, '') + '.js'
-          )
+          route = path.resolve(path.dirname(importer), importee.replace(/\.js$/, '') + '.js')
         }
       }
 
@@ -119,22 +116,17 @@ class Bundle {
         .concat(keys(statement._defines))
         .forEach((name) => {
           const canonicalName = statement._module.getCanonicalName(name)
-
           if (name !== canonicalName) {
             replacements[name] = canonicalName
           }
         })
-
       const source = statement._source.clone().trim()
 
       // modify exports as necessary
       if (/^Export/.test(statement.type)) {
         // 已经引入到一起打包了，所以不需要这些语句了
         // 跳过 `export { foo, bar, baz }` 语句
-        if (
-          statement.type === 'ExportNamedDeclaration' &&
-          statement.specifiers.length
-        ) {
+        if (statement.type === 'ExportNamedDeclaration' && statement.specifiers.length) {
           return
         }
 
@@ -155,17 +147,12 @@ class Bundle {
 
           if (
             statement.declaration.type === 'Identifier' &&
-            canonicalName ===
-              module.getCanonicalName(statement.declaration.name)
+            canonicalName === module.getCanonicalName(statement.declaration.name)
           ) {
             return
           }
 
-          source.overwrite(
-            statement.start,
-            statement.declaration.start,
-            `var ${canonicalName} = `
-          )
+          source.overwrite(statement.start, statement.declaration.start, `var ${canonicalName} = `)
         } else {
           throw new Error('Unhandled export')
         }
@@ -202,12 +189,7 @@ class Bundle {
         return (
           `var ${module.getCanonicalName('*')} = {\n` +
           exportKeys
-            .map(
-              (key) =>
-                `${indentString}get ${key} () { return ${module.getCanonicalName(
-                  key
-                )} }`
-            )
+            .map((key) => `${indentString}get ${key} () { return ${module.getCanonicalName(key)} }`)
             .join(',\n') +
           `\n}\n\n`
         )
@@ -215,15 +197,12 @@ class Bundle {
       .join('')
 
     magicString.prepend(namespaceBlock)
-
     magicString = cjs(this, magicString.trim(), exportMode, options)
-
     return { code: magicString.toString() }
   }
 
   getExportMode(exportMode) {
     const exportKeys = keys(this.entryModule.exports)
-
     if (!exportMode || exportMode === 'auto') {
       if (exportKeys.length === 0) {
         // 没有导出模块
@@ -258,15 +237,12 @@ class Bundle {
     // 为外部模块分配名称，例如引入了 path 模块的 resolve 方法，使用时直接用 resolve()
     // 打包后会变成 path.resolve
     this.externalModules.forEach((module) => {
-      const name =
-        module.suggestedNames['*'] || module.suggestedNames.default || module.id
-
+      const name = module.suggestedNames['*'] || module.suggestedNames.default || module.id
       if (has(definers, name)) {
         conflicts[name] = true
       } else {
         definers[name] = []
       }
-
       definers[name].push(module)
       module.name = name
     })
@@ -318,7 +294,6 @@ class Module {
   analyse() {
     this.imports = {}
     this.exports = {}
-
     this.ast.body.forEach((node) => {
       let source
 
@@ -333,11 +308,7 @@ class Module {
           const isNamespace = specifier.type == 'ImportNamespaceSpecifier'
 
           const localName = specifier.local.name
-          const name = isDefault
-            ? 'default'
-            : isNamespace
-            ? '*'
-            : specifier.imported.name
+          const name = isDefault ? 'default' : isNamespace ? '*' : specifier.imported.name
 
           this.imports[localName] = {
             source,
@@ -446,10 +417,7 @@ class Module {
       }
 
       // skip `export { foo, bar, baz }`
-      if (
-        statement.type === 'ExportNamedDeclaration' &&
-        statement.specifiers.length
-      ) {
+      if (statement.type === 'ExportNamedDeclaration' && statement.specifiers.length) {
         // but ensure they are defined, if this is the entry module
         // export { foo, bar, baz }
         // 遇到这样的语句，如果是从其他模块引入的函数，则会去对应的模块加载函数，
@@ -497,8 +465,7 @@ class Module {
           // then include any statements that could modify the
           // thing(s) this statement defines
           return sequence(keys(statement._defines), (name) => {
-            const modifications =
-              has(this.modifications, name) && this.modifications[name]
+            const modifications = has(this.modifications, name) && this.modifications[name]
 
             if (modifications) {
               return sequence(modifications, (statement) => {
@@ -529,58 +496,56 @@ class Module {
     if (has(this.imports, name)) {
       const importDeclaration = this.imports[name]
 
-      promise = this.bundle
-        .fetchModule(importDeclaration.source, this.path)
-        .then((module) => {
-          importDeclaration.module = module
+      promise = this.bundle.fetchModule(importDeclaration.source, this.path).then((module) => {
+        importDeclaration.module = module
 
-          // suggest names. TODO should this apply to non default/* imports?
+        // suggest names. TODO should this apply to non default/* imports?
+        if (importDeclaration.name === 'default') {
+          // TODO this seems ropey
+          const localName = importDeclaration.localName
+          const suggestion = has(this.suggestedNames, localName)
+            ? this.suggestedNames[localName]
+            : localName
+          module.suggestName('default', suggestion)
+        } else if (importDeclaration.name === '*') {
+          const localName = importDeclaration.localName
+          const suggestion = has(this.suggestedNames, localName)
+            ? this.suggestedNames[localName]
+            : localName
+          module.suggestName('*', suggestion)
+          module.suggestName('default', `${suggestion}__default`)
+        }
+
+        if (module.isExternal) {
           if (importDeclaration.name === 'default') {
-            // TODO this seems ropey
-            const localName = importDeclaration.localName
-            const suggestion = has(this.suggestedNames, localName)
-              ? this.suggestedNames[localName]
-              : localName
-            module.suggestName('default', suggestion)
-          } else if (importDeclaration.name === '*') {
-            const localName = importDeclaration.localName
-            const suggestion = has(this.suggestedNames, localName)
-              ? this.suggestedNames[localName]
-              : localName
-            module.suggestName('*', suggestion)
-            module.suggestName('default', `${suggestion}__default`)
+            module.needsDefault = true
+          } else {
+            module.needsNamed = true
           }
 
-          if (module.isExternal) {
-            if (importDeclaration.name === 'default') {
-              module.needsDefault = true
-            } else {
-              module.needsNamed = true
-            }
+          module.importedByBundle.push(importDeclaration)
+          return emptyArrayPromise
+        }
 
-            module.importedByBundle.push(importDeclaration)
-            return emptyArrayPromise
+        if (importDeclaration.name === '*') {
+          // we need to create an internal namespace
+          if (!this.bundle.internalNamespaceModules.includes(module)) {
+            this.bundle.internalNamespaceModules.push(module)
           }
 
-          if (importDeclaration.name === '*') {
-            // we need to create an internal namespace
-            if (!this.bundle.internalNamespaceModules.includes(module)) {
-              this.bundle.internalNamespaceModules.push(module)
-            }
+          return module.expandAllStatements()
+        }
 
-            return module.expandAllStatements()
-          }
+        const exportDeclaration = module.exports[importDeclaration.name]
 
-          const exportDeclaration = module.exports[importDeclaration.name]
+        if (!exportDeclaration) {
+          throw new Error(
+            `Module ${module.path} does not export ${importDeclaration.name} (imported by ${this.path})`
+          )
+        }
 
-          if (!exportDeclaration) {
-            throw new Error(
-              `Module ${module.path} does not export ${importDeclaration.name} (imported by ${this.path})`
-            )
-          }
-
-          return module.define(exportDeclaration.localName)
-        })
+        return module.define(exportDeclaration.localName)
+      })
     }
     // The definition is in this module
     else if (name === 'default' && this.exports.default.isDeclaration) {
@@ -711,9 +676,7 @@ function sequence(arr, callback) {
   let promise = Promise.resolve()
 
   function next(i) {
-    return promise
-      .then(() => callback(arr[i], i))
-      .then((result) => (results[i] = result))
+    return promise.then(() => callback(arr[i], i)).then((result) => (results[i] = result))
   }
 
   let i
@@ -788,9 +751,7 @@ function cjs(bundle, magicString, exportMode) {
       if (module.needsDefault) {
         requireStatement +=
           '\n' +
-          (module.needsNamed
-            ? `var ${module.name}__default = `
-            : `${module.name} = `) +
+          (module.needsNamed ? `var ${module.name}__default = ` : `${module.name} = `) +
           `'default' in ${module.name} ? ${module.name}['default'] : ${module.name}`
       }
 
@@ -806,9 +767,7 @@ function cjs(bundle, magicString, exportMode) {
 
   let exportBlock
   if (exportMode === 'default' && bundle.entryModule.exports.default) {
-    exportBlock = `module.exports = ${bundle.entryModule.getCanonicalName(
-      'default'
-    )}`
+    exportBlock = `module.exports = ${bundle.entryModule.getCanonicalName('default')}`
   } else if (exportMode === 'named') {
     exportBlock = keys(bundle.entryModule.exports)
       .map((key) => {
@@ -919,9 +878,7 @@ function analyse(ast, magicString, module) {
             break
 
           case 'VariableDeclaration':
-            node.declarations.forEach(
-              node.kind === 'let' ? addToBlockScope : addToScope
-            ) // TODO const?
+            node.declarations.forEach(node.kind === 'let' ? addToBlockScope : addToScope) // TODO const?
             break
 
           case 'ClassDeclaration':
@@ -967,10 +924,7 @@ function analyse(ast, magicString, module) {
 
         const definingScope = scope.findDefiningScope(node.name)
 
-        if (
-          (!definingScope || definingScope.depth === 0) &&
-          !statement._defines[node.name]
-        ) {
+        if ((!definingScope || definingScope.depth === 0) && !statement._defines[node.name]) {
           statement._dependsOn[node.name] = true
         }
       }
@@ -1089,9 +1043,7 @@ function visit(node, parent, enter, leave) {
 
   let keys =
     childKeys[node.type] ||
-    (childKeys[node.type] = Object.keys(node).filter(
-      (key) => typeof node[key] === 'object'
-    ))
+    (childKeys[node.type] = Object.keys(node).filter((key) => typeof node[key] === 'object'))
 
   let key, value, i, j
 
