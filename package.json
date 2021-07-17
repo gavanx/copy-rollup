@@ -4,6 +4,7 @@
   "description": "拷贝自 rollup 初版源码，并对其进行了部分修改",
   "main": "index.js",
   "scripts": {
+    "demo": "node demo/build-main.js",
     "test": "jest"
   },
   "repository": {
